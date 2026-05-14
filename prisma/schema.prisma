@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  name            String
+  password        String
+  role            String   @default("user") // "admin" or "user"
+  isApproved      Boolean  @default(false) // Admin must approve new registrations
+  isPremium       Boolean  @default(false) // Premium user features
+  institutionName String?  // Per-user institution name (premium feature)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  classes        Class[]
+  courses        Course[]
+  students       Student[]
+  tasks          Task[]
+  skillTrackings SkillTracking[]
+}
+
+model Class {
+  id              String    @id @default(cuid())
+  name            String
+  hijriYear       String    @default("")
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  students        Student[]
+  attendance      Attendance[]
+  skillTrackings  SkillTracking[]
+  tasks           Task[]
+  classCourses    ClassCourse[]
+}
+
+model Course {
+  id        String   @id @default(cuid())
+  name      String
+  duration  String   @default("")
+  skills    String   @default("[]") // JSON array of {id, name} objects
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  skillTrackings SkillTracking[]
+  tasks          Task[]
+  classCourses   ClassCourse[]
+}
+
+model ClassCourse {
+  id        String   @id @default(cuid())
+  classId   String
+  courseId  String
+  createdAt DateTime @default(now())
+
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, courseId])
+}
+
+model Student {
+  id         String   @id @default(cuid())
+  rollNo     String
+  name       String
+  status     String   @default("جاری") // "جاری" (active) or "فارغ" (graduated)
+  enrolledAt DateTime @default(now())
+  classId    String
+  class      Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  attendance Attendance[]
+}
+
+model Attendance {
+  id        String @id @default(cuid())
+  studentId String
+  classId   String
+  date      String // YYYY-MM-DD
+  status    String // "حاضر", "رخصت", "غیر حاضر", "skip"
+
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, classId, date])
+}
+
+model SkillTracking {
+  id        String   @id @default(cuid())
+  classId   String
+  courseId  String
+  skillId   String
+  skillName String
+  status    String   @default("Pending") // "Pending", "In Progress", "Completed"
+  startDate String   @default("")
+  endDate   String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @default("")
+  status      String   @default("Pending") // "Pending" or "Completed"
+  classId     String?
+  courseId    String?
+  createdAt   DateTime @default(now())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  class       Class?   @relation(fields: [classId], references: [id], onDelete: SetNull)
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+}
+
+model AppSetting {
+  key       String @id
+  value     String @default("")
+  updatedAt DateTime @updatedAt
+}

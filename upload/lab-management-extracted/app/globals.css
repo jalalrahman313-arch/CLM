@@ -1,0 +1,163 @@
+@import "tailwindcss";
+
+@media print {
+  :root {
+    --color-bg-base: #ffffff;
+    --color-surface-base: #f8fafc;
+    --color-surface-light: #f1f5f9;
+    --color-text-primary: #0f172a;
+    --color-text-muted: #64748b;
+    --color-border-subtle: #e2e8f0;
+    --color-accent-glow: transparent;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+  
+  body, html {
+    background-color: var(--color-bg-base) !important;
+    color: var(--color-text-primary) !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
+  /* Hide the sidebar explicitly during print */
+  aside {
+    display: none !important;
+  }
+  
+  /* Hide headers and inputs globally */
+  header,
+  .print\:hidden {
+    display: none !important;
+  }
+  
+  /* Reset container constraints */
+  #root,
+  .flex.h-screen,
+  main.flex-1 {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Force background colors to print if needed */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Some components should retain colored borders/bg */
+  .bg-accent\/10 {
+    background-color: #f1f8f6 !important;
+  }
+  .bg-emerald-500\/10 {
+    background-color: #ecfdf5 !important;
+  }
+  .bg-rose-500\/10, .bg-rose-500\/20 {
+    background-color: #fff1f2 !important;
+  }
+  .bg-blue-500\/10, .bg-blue-500\/20 {
+    background-color: #eff6ff !important;
+  }
+  
+  .recharts-responsive-container {
+    height: 300px !important;
+    min-height: 300px !important;
+  }
+}
+
+@theme {
+  --font-sans: var(--font-noto-sans-arabic), ui-sans-serif, system-ui, sans-serif;
+  --color-bg-base: var(--bg-base);
+  --color-surface-base: var(--surface-base);
+  --color-surface-light: var(--surface-light);
+  --color-accent: var(--accent);
+  --color-text-primary: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-border-subtle: var(--border-subtle);
+  --color-accent-glow: var(--accent-glow);
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --bg-base: #f8fafc;
+    --surface-base: #ffffff;
+    --surface-light: #f1f5f9;
+    --accent: #10b981;
+    --text-primary: #0f172a;
+    --text-muted: #64748b;
+    --border-subtle: rgba(0, 0, 0, 0.08);
+    --accent-glow: rgba(16, 185, 129, 0.1);
+  }
+
+  .dark {
+    color-scheme: dark;
+    --bg-base: #0b0f1a;
+    --surface-base: #161e31;
+    --surface-light: #1e293b;
+    --accent: #10b981;
+    --text-primary: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --accent-glow: rgba(16, 185, 129, 0.2);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    @apply bg-bg-base text-text-primary transition-colors duration-300;
+  }
+}
+
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-surface-light rounded-full hover:bg-slate-600 transition-colors;
+  }
+  .glass-card {
+    @apply bg-surface-base border border-border-subtle rounded-[20px] shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05)];
+  }
+  .dark .glass-card {
+    @apply shadow-[0_10px_30px_-5px_rgba(0,0,0,0.3)];
+  }
+  .stat-card-glow {
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card-glow::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, var(--color-accent-glow) 0%, transparent 70%);
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .three-d-button {
+    background: linear-gradient(145deg, #10b981, #059669);
+    border: none;
+    box-shadow: 0 4px 0 #047857, 0 8px 15px rgba(16, 185, 129, 0.3);
+    transition: all 0.1s ease;
+    border-radius: 12px;
+  }
+  .three-d-button:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #047857, 0 4px 10px rgba(16, 185, 129, 0.3);
+  }
+}
