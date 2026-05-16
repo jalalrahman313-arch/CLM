@@ -36,7 +36,6 @@ import {
   BarChart3,
   UserX,
   UserCheck,
-  FlaskConical,
   GraduationCap,
 } from "lucide-react"
 import {
@@ -53,7 +52,7 @@ import {
   Legend,
 } from "recharts"
 import { toast } from "sonner"
-import { useSession } from "next-auth/react"
+import { useAuth } from "@/hooks/use-auth"
 import { PremiumGuard } from "@/components/PremiumGuard"
 import { useAppSettings } from "@/hooks/use-app-settings"
 
@@ -95,8 +94,8 @@ interface StudentItem {
 }
 
 export function ReportsSection() {
-  const { data: session } = useSession()
-  const isPremium = session?.user?.isPremium ?? false
+  const { user } = useAuth()
+  const isPremium = user?.isPremium ?? false
   const [premiumGuardOpen, setPremiumGuardOpen] = useState(false)
   const { settings: appSettings } = useAppSettings()
   const institutionName = appSettings.effectiveInstitutionName
@@ -165,10 +164,10 @@ export function ReportsSection() {
     // Per-class detailed breakdown
     for (const cls of report.classSummaries) {
       rows.push([`=== کلاس: ${cls.className} ===`])
-      rows.push(["طلباء", String(cls.studentCount), "حاضر", String(cls.present), "غیر حاضر", String(cls.absent), "رخصت", String(cls.leave), "شرح", `${cls.attendanceRate}%`])
+      rows.push(["طلباء", String(cls.studentCount), "حاضر", String(cls.present), "غائب", String(cls.absent), "رخصت", String(cls.leave), "شرح", `${cls.attendanceRate}%`])
       rows.push([])
 
-      rows.push(["#", "نام", "رول نمبر", "حاضر", "غیر حاضر", "رخصت", "کل", "حاضری شرح", "غیر حاضری شرح"])
+      rows.push(["#", "نام", "رول نمبر", "حاضر", "غائب", "رخصت", "کل", "حاضری شرح", "غائبی شرح"])
       const classStudents = report.studentAttendanceList.filter(s => s.classId === cls.classId)
       classStudents.forEach((s, idx) => {
         rows.push([
@@ -208,7 +207,7 @@ export function ReportsSection() {
   const attendancePie = report
     ? [
         { name: "حاضر", value: report.attendanceMetrics.present, color: "#10b981" },
-        { name: "غیر حاضر", value: report.attendanceMetrics.absent, color: "#ef4444" },
+        { name: "غائب", value: report.attendanceMetrics.absent, color: "#ef4444" },
         { name: "رخصت", value: report.attendanceMetrics.leave, color: "#f59e0b" },
       ].filter((d) => d.value > 0)
     : []
@@ -359,7 +358,7 @@ export function ReportsSection() {
                 <XCircle className="h-4 w-4 text-white" />
               </div>
               <p className="text-xl font-bold text-red-600 leading-tight">{report.attendanceMetrics.absent}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">غیر حاضر</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">غائب</p>
             </div>
             <div className="stat-3d text-center p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800" style={{ '--accent-color': '#f59e0b' } as React.CSSProperties}>
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center mx-auto mb-1.5 shadow-sm">
@@ -400,7 +399,7 @@ export function ReportsSection() {
                         <Tooltip />
                         <Legend wrapperStyle={{ fontSize: '11px' }} />
                         <Bar dataKey="present" name="حاضر" fill="#10b981" radius={[3, 3, 0, 0]} />
-                        <Bar dataKey="absent" name="غیر حاضر" fill="#ef4444" radius={[3, 3, 0, 0]} />
+                        <Bar dataKey="absent" name="غائب" fill="#ef4444" radius={[3, 3, 0, 0]} />
                         <Bar dataKey="leave" name="رخصت" fill="#f59e0b" radius={[3, 3, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
@@ -492,7 +491,7 @@ export function ReportsSection() {
                         </div>
                         <div className="bg-white/20 px-3 py-1.5 rounded-lg print:bg-red-50 print:border print:border-red-200 backdrop-blur-sm">
                           <p className="text-sm font-bold print:text-red-700 leading-tight">{cls.absent}</p>
-                          <p className="text-[9px] opacity-80 print:text-red-600">غیرحاضر</p>
+                          <p className="text-[9px] opacity-80 print:text-red-600">غائب</p>
                         </div>
                         <div className="bg-white/20 px-3 py-1.5 rounded-lg print:bg-amber-50 print:border print:border-amber-200 backdrop-blur-sm">
                           <p className="text-sm font-bold print:text-amber-700 leading-tight">{cls.leave}</p>
@@ -658,7 +657,7 @@ export function ReportsSection() {
                 <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center print:bg-red-200">
                   <AlertTriangle className="h-4 w-4 print:text-red-700" />
                 </div>
-                <h3 className="text-sm font-bold flex-1">زیادہ غیر حاضری</h3>
+                <h3 className="text-sm font-bold flex-1">زیادہ غائبی</h3>
                 <Badge className="bg-white/20 text-white border-0 text-[10px] px-2.5 py-0.5 print:bg-red-200 print:text-red-800 font-semibold">
                   {report.studentAbsenceList.filter(s => s.absenceRate > 30).length}
                 </Badge>

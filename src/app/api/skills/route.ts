@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/auth-user'
 import { db } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
@@ -19,14 +18,14 @@ export async function GET(request: NextRequest) {
 
     // Verify class belongs to user
     const cls = await db.class.findFirst({
-      where: { id: classId, userId: session.user.id },
+      where: { id: classId, userId: user.id },
     })
     if (!cls) {
       return NextResponse.json({ error: 'کلاس نہیں ملی' }, { status: 404 })
     }
 
     const skills = await db.skillTracking.findMany({
-      where: { classId, userId: session.user.id },
+      where: { classId, userId: user.id },
       include: {
         course: {
           select: { name: true },
@@ -47,8 +46,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
@@ -66,14 +65,14 @@ export async function POST(request: NextRequest) {
       }
 
       const cls = await db.class.findFirst({
-        where: { id: record.classId, userId: session.user.id },
+        where: { id: record.classId, userId: user.id },
       })
       if (!cls) {
         return NextResponse.json({ error: 'کلاس نہیں ملی' }, { status: 404 })
       }
 
       const course = await db.course.findFirst({
-        where: { id: record.courseId, userId: session.user.id },
+        where: { id: record.courseId, userId: user.id },
       })
       if (!course) {
         return NextResponse.json({ error: 'کورس نہیں ملا' }, { status: 404 })
@@ -90,7 +89,7 @@ export async function POST(request: NextRequest) {
             skillName: record.skillName,
             status: record.status || 'Pending',
             startDate: record.startDate || new Date().toISOString().split('T')[0],
-            userId: session.user.id,
+            userId: user.id,
           },
         })
       )
@@ -105,8 +104,8 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
@@ -118,7 +117,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const existing = await db.skillTracking.findFirst({
-      where: { id, userId: session.user.id },
+      where: { id, userId: user.id },
     })
 
     if (!existing) {

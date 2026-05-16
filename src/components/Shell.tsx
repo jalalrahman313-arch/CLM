@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { useSession, signOut } from "next-auth/react"
+// Auth handled by useAuth hook
+import { useAuth } from "@/hooks/use-auth"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -23,8 +24,9 @@ import {
   Moon,
   Menu,
   Crown,
-  FlaskConical,
+  Monitor,
   Sparkles,
+  UserCog,
 } from "lucide-react"
 import { useAppSettings } from "@/hooks/use-app-settings"
 import { DashboardSection } from "@/components/sections/DashboardSection"
@@ -37,23 +39,26 @@ import { TasksSection } from "@/components/sections/TasksSection"
 import { CertificatesSection } from "@/components/sections/CertificatesSection"
 import { ReportsSection } from "@/components/sections/ReportsSection"
 import { SettingsSection } from "@/components/sections/SettingsSection"
+import { MembersSection } from "@/components/sections/MembersSection"
 
 const navItems = [
-  { id: "dashboard", label: "ڈیش بورڈ", icon: LayoutDashboard, group: "مرکزی" },
-  { id: "attendance", label: "حاضری", icon: CheckSquare, group: "مرکزی" },
-  { id: "classes", label: "کلاسز", icon: Users, group: "انتظامیہ" },
-  { id: "courses", label: "کورسز", icon: BookOpen, group: "انتظامیہ" },
-  { id: "students", label: "طلباء", icon: UserPlus, group: "انتظامیہ" },
-  { id: "skills", label: "اسکلز ٹریکر", icon: Network, group: "تعلیمی" },
-  { id: "tasks", label: "ٹاسکس", icon: ClipboardList, group: "تعلیمی" },
-  { id: "certificates", label: "سرٹیفکیٹ", icon: Award, group: "آؤٹ پٹ" },
-  { id: "reports", label: "رپورٹس", icon: FileBarChart, group: "آؤٹ پٹ" },
-  { id: "settings", label: "سیٹنگز", icon: Settings, group: "آؤٹ پٹ" },
+  { id: "dashboard", label: "ڈیش بورڈ", icon: LayoutDashboard, group: "مرکزی", adminOnly: false },
+  { id: "attendance", label: "حاضری", icon: CheckSquare, group: "مرکزی", adminOnly: false },
+  { id: "members", label: "ممبر مینجمنٹ", icon: UserCog, group: "انتظامیہ", adminOnly: true },
+  { id: "classes", label: "کلاسز", icon: Users, group: "انتظامیہ", adminOnly: false },
+  { id: "courses", label: "کورسز", icon: BookOpen, group: "انتظامیہ", adminOnly: false },
+  { id: "students", label: "طلباء", icon: UserPlus, group: "انتظامیہ", adminOnly: false },
+  { id: "skills", label: "اسکلز ٹریکر", icon: Network, group: "تعلیمی", adminOnly: false },
+  { id: "tasks", label: "ٹاسکس", icon: ClipboardList, group: "تعلیمی", adminOnly: false },
+  { id: "certificates", label: "سرٹیفکیٹ", icon: Award, group: "آؤٹ پٹ", adminOnly: false },
+  { id: "reports", label: "رپورٹس", icon: FileBarChart, group: "آؤٹ پٹ", adminOnly: false },
+  { id: "settings", label: "سیٹنگز", icon: Settings, group: "آؤٹ پٹ", adminOnly: false },
 ]
 
 const sectionComponents: Record<string, React.ComponentType> = {
   dashboard: DashboardSection,
   attendance: AttendanceSection,
+  members: MembersSection,
   classes: ClassesSection,
   courses: CoursesSection,
   students: StudentsSection,
@@ -79,11 +84,13 @@ interface SidebarContentProps {
   userEmail?: string | null
   institutionName?: string
   isPremium?: boolean
+  isAdmin?: boolean
 }
 
-function SidebarContent({ activeSection, onNavClick, userName, userEmail, institutionName, isPremium }: SidebarContentProps) {
-  // Group nav items by group
-  const grouped = navItems.reduce<Record<string, typeof navItems>>((acc, item) => {
+function SidebarContent({ activeSection, onNavClick, userName, userEmail, institutionName, isPremium, isAdmin }: SidebarContentProps) {
+  // Filter nav items based on admin role, then group
+  const visibleItems = navItems.filter((item) => !item.adminOnly || isAdmin)
+  const grouped = visibleItems.reduce<Record<string, typeof navItems>>((acc, item) => {
     if (!acc[item.group]) acc[item.group] = []
     acc[item.group].push(item)
     return acc
@@ -100,7 +107,7 @@ function SidebarContent({ activeSection, onNavClick, userName, userEmail, instit
             <div className="absolute bottom-1 right-1/3 w-10 h-10 rounded-full bg-white" />
           </div>
           <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/20 relative">
-            <FlaskConical className="h-5 w-5 text-white" />
+            <Monitor className="h-5 w-5 text-white" />
           </div>
           <div className="min-w-0 flex-1 relative">
             <h2 className="text-sm font-bold text-white leading-tight truncate">لیب مینجمنٹ</h2>
@@ -162,7 +169,9 @@ function SidebarContent({ activeSection, onNavClick, userName, userEmail, instit
           variant="ghost"
           className="w-full justify-center text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 text-[13px] h-9 rounded-lg gap-2"
           size="sm"
-          onClick={() => signOut({ callbackUrl: '/' })}
+          onClick={() => {
+            logout()
+          }}
         >
           <LogOut className="h-4 w-4" />
           لاگ آؤٹ
@@ -173,7 +182,7 @@ function SidebarContent({ activeSection, onNavClick, userName, userEmail, instit
 }
 
 export function Shell() {
-  const { data: session } = useSession()
+  const { user, logout } = useAuth()
   const { theme, setTheme } = useTheme()
   const { settings: appSettings } = useAppSettings()
   const [activeSection, setActiveSection] = useState("dashboard")
@@ -195,7 +204,7 @@ export function Shell() {
   const activeLabel = navItems.find((item) => item.id === activeSection)?.label || "ڈیش بورڈ"
   const activeIcon = navItems.find((item) => item.id === activeSection)?.icon || LayoutDashboard
 
-  const isPremium = session?.user?.isPremium ?? false
+  const isPremium = user?.isPremium ?? false
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -204,10 +213,11 @@ export function Shell() {
         <SidebarContent
           activeSection={activeSection}
           onNavClick={handleNavClick}
-          userName={session?.user?.name}
-          userEmail={session?.user?.email}
+          userName={user?.name}
+          userEmail={user?.email}
           institutionName={appSettings.effectiveInstitutionName}
           isPremium={isPremium}
+          isAdmin={user?.role === "admin"}
         />
       </aside>
 
@@ -228,10 +238,11 @@ export function Shell() {
                 <SidebarContent
                   activeSection={activeSection}
                   onNavClick={handleNavClick}
-                  userName={session?.user?.name}
-                  userEmail={session?.user?.email}
+                  userName={user?.name}
+                  userEmail={user?.email}
                   institutionName={appSettings.effectiveInstitutionName}
                   isPremium={isPremium}
+                  isAdmin={user?.role === "admin"}
                 />
               </SheetContent>
             </Sheet>

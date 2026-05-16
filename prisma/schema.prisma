@@ -72,6 +72,8 @@ model Student {
   id         String   @id @default(cuid())
   rollNo     String
   name       String
+  phone      String?
+  email      String?
   status     String   @default("جاری") // "جاری" (active) or "فارغ" (graduated)
   enrolledAt DateTime @default(now())
   classId    String
@@ -87,7 +89,7 @@ model Attendance {
   studentId String
   classId   String
   date      String // YYYY-MM-DD
-  status    String // "حاضر", "رخصت", "غیر حاضر", "skip"
+  status    String // "حاضر", "رخصت", "غائب", "skip"
 
   student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)

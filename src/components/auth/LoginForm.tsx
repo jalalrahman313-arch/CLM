@@ -1,12 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { LogIn, Loader2, FlaskConical } from "lucide-react"
+import { LogIn, Loader2, Monitor } from "lucide-react"
 
 interface LoginFormProps {
   onSwitchToRegister: () => void
@@ -17,6 +17,7 @@ export function LoginForm({ onSwitchToRegister }: LoginFormProps) {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,14 +25,13 @@ export function LoginForm({ onSwitchToRegister }: LoginFormProps) {
     setLoading(true)
 
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      })
+      const result = await login(email, password)
 
-      if (result?.error) {
-        setError("ای میل یا پاسورڈ غلط ہے")
+      if (result.success) {
+        // Auth state is updated by the hook, no need to reload
+        // Just wait for the state to propagate
+      } else {
+        setError(result.message)
       }
     } catch {
       setError("لاگ ان میں خرابی پیش آئی")
@@ -50,7 +50,7 @@ export function LoginForm({ onSwitchToRegister }: LoginFormProps) {
         </div>
         <div className="relative">
           <div className="mx-auto w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3 border border-white/30 shadow-lg">
-            <FlaskConical className="h-8 w-8" />
+            <Monitor className="h-8 w-8" />
           </div>
           <CardTitle className="text-2xl font-bold text-white">لاگ ان</CardTitle>
           <CardDescription className="text-white/80 mt-1.5">اپنے اکاؤنٹ میں داخل ہوں</CardDescription>

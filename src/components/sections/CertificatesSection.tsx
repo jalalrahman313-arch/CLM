@@ -22,7 +22,7 @@ import {
 import { Award, Search, Download, FileText, Eye, Printer, GraduationCap } from "lucide-react"
 import { toast } from "sonner"
 import { useAppSettings } from "@/hooks/use-app-settings"
-import { useSession } from "next-auth/react"
+import { useAuth } from "@/hooks/use-auth"
 import { PremiumGuard } from "@/components/PremiumGuard"
 
 interface StudentItem {
@@ -53,8 +53,8 @@ export function CertificatesSection() {
   const [premiumGuardOpen, setPremiumGuardOpen] = useState(false)
   const certRef = useRef<HTMLDivElement>(null)
   const { settings: appSettings } = useAppSettings()
-  const { data: session } = useSession()
-  const isPremium = session?.user?.isPremium ?? false
+  const { user } = useAuth()
+  const isPremium = user?.isPremium ?? false
 
   const institutionName = appSettings.effectiveInstitutionName
 

@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/auth-user'
 import { db } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
@@ -22,14 +21,14 @@ export async function GET(request: NextRequest) {
       where.classId = classId
       // Verify class belongs to user
       const cls = await db.class.findFirst({
-        where: { id: classId, userId: session.user.id },
+        where: { id: classId, userId: user.id },
       })
       if (!cls) {
         return NextResponse.json({ error: 'کلاس نہیں ملی' }, { status: 404 })
       }
     } else {
       // If no classId, filter through user's classes
-      where.class = { userId: session.user.id }
+      where.class = { userId: user.id }
     }
 
     if (date) where.date = date
@@ -57,8 +56,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
@@ -71,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     // Verify class belongs to user
     const cls = await db.class.findFirst({
-      where: { id: classId, userId: session.user.id },
+      where: { id: classId, userId: user.id },
     })
     if (!cls) {
       return NextResponse.json({ error: 'کلاس نہیں ملی' }, { status: 404 })
@@ -79,7 +78,7 @@ export async function POST(request: NextRequest) {
 
     // Verify student belongs to user
     const student = await db.student.findFirst({
-      where: { id: studentId, userId: session.user.id },
+      where: { id: studentId, userId: user.id },
     })
     if (!student) {
       return NextResponse.json({ error: 'طالب علم نہیں ملا' }, { status: 404 })

@@ -35,14 +35,19 @@ function loadSettings(): DashboardSettings {
   return DEFAULT_SETTINGS
 }
 
+/** Apply font size to <html> so all rem-based Tailwind classes scale */
+function applyFontSize(fontSize: string) {
+  if (typeof document !== "undefined") {
+    document.documentElement.setAttribute("data-font-size", fontSize)
+  }
+}
+
 export function useDashboardSettings() {
   const [settings, setSettings] = useState<DashboardSettings>(loadSettings)
 
-  // Apply font size to document root
+  // Apply font size whenever it changes (and on initial mount)
   useEffect(() => {
-    if (typeof document !== "undefined") {
-      document.documentElement.setAttribute("data-font-size", settings.fontSize)
-    }
+    applyFontSize(settings.fontSize)
   }, [settings.fontSize])
 
   const updateSettings = useCallback((updates: Partial<DashboardSettings>) => {
@@ -52,6 +57,10 @@ export function useDashboardSettings() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings))
       } catch {
         // ignore
+      }
+      // Apply font size immediately for instant visual feedback
+      if (updates.fontSize) {
+        applyFontSize(updates.fontSize)
       }
       return newSettings
     })

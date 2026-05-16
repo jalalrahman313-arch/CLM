@@ -1,18 +1,18 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { getCurrentSession } from "@/lib/auth"
+import { getAuthUser } from "@/lib/auth-user"
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const session = await getCurrentSession()
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json(
         { success: false, message: "لاگ ان ضروری ہے" },
         { status: 401 }
       )
     }
 
-    const userId = session.user.id
+    const userId = user.id
 
     // Check if user already has data
     const existingClasses = await db.class.count({ where: { userId } })
@@ -101,29 +101,31 @@ export async function POST() {
     })
 
     // Create dummy students
-    const studentNames = [
-      "احمد خان",
-      "محمد علی",
-      "عبداللہ",
-      "عمران حسین",
-      "بلال احمد",
-      "حمزہ رضا",
-      "طارق محمود",
-      "سعید احمد",
-      "فہد خان",
-      "کامران علی",
-      "نعمان حکیم",
-      "شبیر احمد",
+    const studentData = [
+      { name: "احمد خان", phone: "0300-1234567", email: "ahmed@example.com" },
+      { name: "محمد علی", phone: "0312-2345678", email: "ali@example.com" },
+      { name: "عبداللہ", phone: "0321-3456789", email: "abdullah@example.com" },
+      { name: "عمران حسین", phone: "0333-4567890", email: "imran@example.com" },
+      { name: "بلال احمد", phone: "0345-5678901", email: "bilal@example.com" },
+      { name: "حمزہ رضا", phone: "0300-6789012", email: "hamza@example.com" },
+      { name: "طارق محمود", phone: "0312-7890123", email: "" },
+      { name: "سعید احمد", phone: "0321-8901234", email: "" },
+      { name: "فہد خان", phone: "0333-9012345", email: "fahad@example.com" },
+      { name: "کامران علی", phone: "0345-0123456", email: "kamran@example.com" },
+      { name: "نعمان حکیم", phone: "", email: "numan@example.com" },
+      { name: "شبیر احمد", phone: "", email: "" },
     ]
 
     const students = []
-    for (let i = 0; i < studentNames.length; i++) {
+    for (let i = 0; i < studentData.length; i++) {
       const classId = i < 4 ? class1.id : i < 8 ? class2.id : class3.id
       const courseId = i < 4 ? course1.id : i < 8 ? course2.id : course3.id
       const student = await db.student.create({
         data: {
           rollNo: `STD-${String(i + 1).padStart(3, "0")}`,
-          name: studentNames[i],
+          name: studentData[i].name,
+          phone: studentData[i].phone || null,
+          email: studentData[i].email || null,
           status: i < 10 ? "جاری" : "فارغ",
           classId,
           userId,
@@ -134,7 +136,7 @@ export async function POST() {
 
     // Create dummy attendance (last 7 days)
     const today = new Date()
-    const attendanceStatuses = ["حاضر", "رخصت", "غیر حاضر"]
+    const attendanceStatuses = ["حاضر", "رخصت", "غائب"]
 
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
       const date = new Date(today)

@@ -1,22 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/auth-user'
 import { db } from '@/lib/db'
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
     const { id } = await params
 
     const student = await db.student.findFirst({
-      where: { id, userId: session.user.id },
+      where: { id, userId: user.id },
       include: {
         class: {
           select: { name: true },
@@ -36,6 +35,8 @@ export async function GET(
         id: student.id,
         rollNo: student.rollNo,
         name: student.name,
+        phone: student.phone,
+        email: student.email,
         status: student.status,
         enrolledAt: student.enrolledAt,
         classId: student.classId,
@@ -54,17 +55,17 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
     const { id } = await params
     const body = await request.json()
-    const { name, status, classId } = body
+    const { name, status, classId, phone, email } = body
 
     const existing = await db.student.findFirst({
-      where: { id, userId: session.user.id },
+      where: { id, userId: user.id },
     })
 
     if (!existing) {
@@ -75,6 +76,8 @@ export async function PUT(
     if (name !== undefined) updateData.name = name.trim()
     if (status !== undefined) updateData.status = status
     if (classId !== undefined) updateData.classId = classId
+    if (phone !== undefined) updateData.phone = phone || null
+    if (email !== undefined) updateData.email = email || null
 
     const updated = await db.student.update({
       where: { id },
@@ -91,6 +94,8 @@ export async function PUT(
         id: updated.id,
         rollNo: updated.rollNo,
         name: updated.name,
+        phone: updated.phone,
+        email: updated.email,
         status: updated.status,
         enrolledAt: updated.enrolledAt,
         classId: updated.classId,
@@ -104,19 +109,19 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
     const { id } = await params
 
     const existing = await db.student.findFirst({
-      where: { id, userId: session.user.id },
+      where: { id, userId: user.id },
     })
 
     if (!existing) {

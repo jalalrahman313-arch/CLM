@@ -1,16 +1,15 @@
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { getAuthUser } from '@/lib/auth-user'
 import { db } from '@/lib/db'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
-    const userId = session.user.id
+    const userId = user.id
 
     // Total classes count
     const totalClasses = await db.class.count({
@@ -71,7 +70,7 @@ export async function GET() {
       const absent = await db.attendance.count({
         where: {
           date: dateStr,
-          status: 'غیر حاضر',
+          status: { in: ['غائب', 'غایب', 'غیر حاضر'] },
           class: { userId },
         },
       })

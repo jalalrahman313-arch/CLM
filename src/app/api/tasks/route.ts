@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/auth-user'
 import { db } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
@@ -15,7 +14,7 @@ export async function GET(request: NextRequest) {
     const courseId = searchParams.get('courseId')
     const status = searchParams.get('status')
 
-    const where: Record<string, unknown> = { userId: session.user.id }
+    const where: Record<string, unknown> = { userId: user.id }
     if (classId) where.classId = classId
     if (courseId) where.courseId = courseId
     if (status) where.status = status
@@ -42,8 +41,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
@@ -57,7 +56,7 @@ export async function POST(request: NextRequest) {
     // Verify class belongs to user if provided
     if (classId) {
       const cls = await db.class.findFirst({
-        where: { id: classId, userId: session.user.id },
+        where: { id: classId, userId: user.id },
       })
       if (!cls) {
         return NextResponse.json({ error: 'کلاس نہیں ملی' }, { status: 404 })
@@ -67,7 +66,7 @@ export async function POST(request: NextRequest) {
     // Verify course belongs to user if provided
     if (courseId) {
       const course = await db.course.findFirst({
-        where: { id: courseId, userId: session.user.id },
+        where: { id: courseId, userId: user.id },
       })
       if (!course) {
         return NextResponse.json({ error: 'کورس نہیں ملا' }, { status: 404 })
@@ -81,7 +80,7 @@ export async function POST(request: NextRequest) {
         status: status || 'Pending',
         classId: classId || null,
         courseId: courseId || null,
-        userId: session.user.id,
+        userId: user.id,
       },
       include: {
         class: {

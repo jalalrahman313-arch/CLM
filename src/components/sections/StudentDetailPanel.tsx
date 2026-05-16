@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
-import { ArrowRight, User, BookOpen, Calendar, CheckCircle2, XCircle, Clock, BarChart3 } from "lucide-react"
+import { ArrowRight, User, BookOpen, Calendar, CheckCircle2, XCircle, Clock, BarChart3, Phone, Mail } from "lucide-react"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts"
 
 interface StudentDetail {
   id: string
   rollNo: string
   name: string
+  phone?: string | null
+  email?: string | null
   status: string
   enrolledAt: string
   classId: string
@@ -52,7 +54,7 @@ export function StudentDetailPanel({ studentId, onBack }: StudentDetailPanelProp
 
   const attendanceRecords = student.attendance || []
   const presentCount = attendanceRecords.filter((a) => a.status === "حاضر").length
-  const absentCount = attendanceRecords.filter((a) => a.status === "غیر حاضر").length
+  const absentCount = attendanceRecords.filter((a) => a.status === "غائب" || a.status === "غایب" || a.status === "غیر حاضر").length
   const leaveCount = attendanceRecords.filter((a) => a.status === "رخصت").length
   const skipCount = attendanceRecords.filter((a) => a.status === "skip").length
   const totalRecords = attendanceRecords.length
@@ -60,7 +62,7 @@ export function StudentDetailPanel({ studentId, onBack }: StudentDetailPanelProp
 
   const pieData = [
     { name: "حاضر", value: presentCount, color: "#10b981" },
-    { name: "غیر حاضر", value: absentCount, color: "#ef4444" },
+    { name: "غائب", value: absentCount, color: "#ef4444" },
     { name: "رخصت", value: leaveCount, color: "#f59e0b" },
     { name: "چھوڑ", value: skipCount, color: "#6b7280" },
   ].filter((d) => d.value > 0)
@@ -87,7 +89,7 @@ export function StudentDetailPanel({ studentId, onBack }: StudentDetailPanelProp
       <div className="pro-card">
         <div className="h-1.5 bg-gradient-to-l from-teal-500 to-emerald-500" />
         <CardContent className="p-5">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/40">
               <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <User className="h-4 w-4 text-primary" />
@@ -115,6 +117,24 @@ export function StudentDetailPanel({ studentId, onBack }: StudentDetailPanelProp
                 <p className="font-medium text-sm">{student.className}</p>
               </div>
             </div>
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/40">
+              <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center shrink-0">
+                <Phone className="h-4 w-4 text-teal-600" />
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">فون</p>
+                <p className="font-mono text-sm" dir="ltr">{student.phone || "—"}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/40">
+              <div className="w-9 h-9 rounded-lg bg-cyan-500/10 flex items-center justify-center shrink-0">
+                <Mail className="h-4 w-4 text-cyan-600" />
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">ای میل</p>
+                <p className="text-sm truncate" dir="ltr">{student.email || "—"}</p>
+              </div>
+            </div>
             <div className="flex items-center justify-center p-2.5 rounded-xl bg-muted/40">
               <Badge variant={student.status === "جاری" ? "default" : "secondary"} className="text-sm">
                 {student.status}
@@ -138,7 +158,7 @@ export function StudentDetailPanel({ studentId, onBack }: StudentDetailPanelProp
             <XCircle className="h-5 w-5 text-white" />
           </div>
           <p className="text-2xl font-bold">{absentCount}</p>
-          <p className="text-xs text-muted-foreground">غیر حاضر</p>
+          <p className="text-xs text-muted-foreground">غائب</p>
         </div>
         <div className="stat-3d bg-card border p-4 text-center" style={{ '--accent-color': '#f59e0b' } as React.CSSProperties}>
           <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center mx-auto mb-2 shadow-md shadow-amber-500/25">

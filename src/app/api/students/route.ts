@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/auth-user'
 import { db } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
     const classId = searchParams.get('classId')
 
-    const where: Record<string, unknown> = { userId: session.user.id }
+    const where: Record<string, unknown> = { userId: user.id }
     if (classId) where.classId = classId
 
     const students = await db.student.findMany({
@@ -30,6 +29,8 @@ export async function GET(request: NextRequest) {
       id: student.id,
       rollNo: student.rollNo,
       name: student.name,
+      phone: student.phone,
+      email: student.email,
       status: student.status,
       enrolledAt: student.enrolledAt,
       classId: student.classId,
@@ -45,13 +46,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
     const body = await request.json()
-    const { name, classId, status } = body
+    const { name, classId, status, phone, email } = body
 
     if (!name || typeof name !== 'string' || !name.trim()) {
       return NextResponse.json({ error: 'طالب علم کا نام ضروری ہے' }, { status: 400 })
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     // Verify class belongs to user
     const cls = await db.class.findFirst({
-      where: { id: classId, userId: session.user.id },
+      where: { id: classId, userId: user.id },
     })
 
     if (!cls) {
@@ -71,10 +72,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Premium check: non-premium users can't add more than 100 students
-    const isPremium = (session.user as { isPremium?: boolean }).isPremium ?? false
+    const isPremium = user.isPremium ?? false
     if (!isPremium) {
       const totalStudents = await db.student.count({
-        where: { userId: session.user.id },
+        where: { userId: user.id },
       })
       if (totalStudents >= 100) {
         return NextResponse.json(
@@ -97,9 +98,11 @@ export async function POST(request: NextRequest) {
       data: {
         rollNo,
         name: name.trim(),
+        phone: phone || null,
+        email: email || null,
         status: status || 'جاری',
         classId,
-        userId: session.user.id,
+        userId: user.id,
       },
       include: {
         class: {
@@ -113,6 +116,8 @@ export async function POST(request: NextRequest) {
         id: newStudent.id,
         rollNo: newStudent.rollNo,
         name: newStudent.name,
+        phone: newStudent.phone,
+        email: newStudent.email,
         status: newStudent.status,
         enrolledAt: newStudent.enrolledAt,
         classId: newStudent.classId,

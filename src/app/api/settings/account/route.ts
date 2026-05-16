@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { hash, compare } from "bcryptjs"
 import { db } from "@/lib/db"
-import { getCurrentSession } from "@/lib/auth"
+import { getAuthUser } from "@/lib/auth-user"
 import { z } from "zod"
 
 const updateNameSchema = z.object({
@@ -22,8 +22,8 @@ const updateSchema = z.discriminatedUnion("type", [
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getCurrentSession()
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json(
         { success: false, message: "لاگ ان ضروری ہے" },
         { status: 401 }
@@ -41,7 +41,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const userId = session.user.id
+    const userId = user.id
 
     if (result.data.type === "name") {
       // Update name - role is never touched
@@ -58,12 +58,12 @@ export async function PUT(request: NextRequest) {
 
     if (result.data.type === "password") {
       // Verify current password
-      const user = await db.user.findUnique({
+      const dbUser = await db.user.findUnique({
         where: { id: userId },
         select: { password: true },
       })
 
-      if (!user) {
+      if (!dbUser) {
         return NextResponse.json(
           { success: false, message: "یوزر نہیں ملا" },
           { status: 404 }
@@ -72,7 +72,7 @@ export async function PUT(request: NextRequest) {
 
       const isPasswordValid = await compare(
         result.data.currentPassword,
-        user.password
+        dbUser.password
       )
 
       if (!isPasswordValid) {

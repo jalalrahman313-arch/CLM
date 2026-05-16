@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/auth-user'
 import { db } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
@@ -19,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     // Get all classes for the user
     const classes = await db.class.findMany({
-      where: { userId: session.user.id },
+      where: { userId: user.id },
       include: {
         _count: {
           select: { students: true },
@@ -31,7 +30,7 @@ export async function GET(request: NextRequest) {
     const attendanceRecords = await db.attendance.findMany({
       where: {
         date,
-        class: { userId: session.user.id },
+        class: { userId: user.id },
       },
       select: {
         classId: true,

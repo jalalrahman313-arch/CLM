@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { getCurrentSession } from "@/lib/auth"
+import { getAuthUser } from "@/lib/auth-user"
 
 // GET: Fetch app settings + user-specific institution name
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const settings = await db.appSetting.findMany()
     const settingsMap: Record<string, string> = {}
@@ -19,13 +19,13 @@ export async function GET() {
     // Get user-specific institution name if logged in
     let userInstitutionName: string | null = null
     try {
-      const session = await getCurrentSession()
-      if (session?.user?.id) {
-        const user = await db.user.findUnique({
-          where: { id: session.user.id },
+      const user = await getAuthUser(request)
+      if (user) {
+        const dbUser = await db.user.findUnique({
+          where: { id: user.id },
           select: { institutionName: true },
         })
-        userInstitutionName = user?.institutionName || null
+        userInstitutionName = dbUser?.institutionName || null
       }
     } catch {
       // Ignore - user might not be logged in
@@ -56,8 +56,8 @@ export async function GET() {
 // - Premium users can update their own institution name
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getCurrentSession()
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json(
         { success: false, message: "لاگ ان ضروری ہے" },
         { status: 401 }
@@ -69,7 +69,7 @@ export async function PUT(request: NextRequest) {
 
     // If it's a personal institution name update (for premium users)
     if (isPersonalUpdate && institutionName !== undefined) {
-      if (!session.user.isPremium) {
+      if (!user.isPremium) {
         return NextResponse.json(
           { success: false, message: "یہ فیچر صرف پریمیم یوزرز کے لیے ہے" },
           { status: 403 }
@@ -77,7 +77,7 @@ export async function PUT(request: NextRequest) {
       }
 
       await db.user.update({
-        where: { id: session.user.id },
+        where: { id: user.id },
         data: { institutionName: institutionName.trim() || null },
       })
 
@@ -89,7 +89,7 @@ export async function PUT(request: NextRequest) {
 
     // Global institution name update (admin only)
     if (institutionName !== undefined) {
-      if (session.user.role !== "admin") {
+      if (user.role !== "admin") {
         return NextResponse.json(
           { success: false, message: "صرف ایڈمن تبدیل کر سکتا ہے" },
           { status: 403 }

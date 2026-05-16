@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { useSession } from "next-auth/react"
+import { useAuth } from "@/hooks/use-auth"
 import { useQueryClient } from "@tanstack/react-query"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -58,7 +58,7 @@ interface PendingUser {
 }
 
 export function SettingsSection() {
-  const { data: session, update: updateSession } = useSession()
+  const { user: authUser } = useAuth()
   const queryClient = useQueryClient()
   const { settings, updateSettings } = useDashboardSettings()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -66,8 +66,8 @@ export function SettingsSection() {
   const [resetConfirmDialogOpen, setResetConfirmDialogOpen] = useState(false)
 
   // Premium check from database
-  const isAdmin = session?.user?.role === "admin"
-  const isPremium = session?.user?.isPremium ?? false
+  const isAdmin = authUser?.role === "admin"
+  const isPremium = authUser?.isPremium ?? false
 
   // Account management states
   const [editName, setEditName] = useState("")
@@ -103,10 +103,10 @@ export function SettingsSection() {
 
   // Initialize edit name with current name
   useEffect(() => {
-    if (session?.user?.name) {
-      setEditName(session.user.name)
+    if (authUser?.name) {
+      setEditName(authUser.name)
     }
-  }, [session?.user?.name])
+  }, [authUser?.name])
 
   // Load users for admin
   const fetchUsers = async () => {
@@ -165,7 +165,15 @@ export function SettingsSection() {
         return
       }
       toast.success("نام کامیابی سے تبدیل ہو گیا")
-      await updateSession()
+      // Re-login to refresh token with updated name
+      if (authUser?.email) {
+        // Refresh user data from session API
+        const sessionRes = await fetch("/api/auth/session")
+        const sessionData = await sessionRes.json()
+        if (sessionData.success && sessionData.user) {
+          localStorage.setItem("auth-user", JSON.stringify(sessionData.user))
+        }
+      }
       setIsEditingName(false)
     } catch {
       toast.error("نام تبدیل کرنے میں خرابی")
@@ -327,10 +335,13 @@ export function SettingsSection() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement("a")
       link.href = url
-      link.download = `lab-management-backup-${new Date().toISOString().split("T")[0]}.json`
+      // Format: "date - institution name.json"
+      const date = new Date().toISOString().split("T")[0]
+      const institutionName = appSettings.effectiveInstitutionName || "لیب مینجمنٹ"
+      link.download = `${date} - ${institutionName}.json`
       link.click()
       URL.revokeObjectURL(url)
-      toast.success("ڈیٹا ایکسپورٹ ہو رہا ہے")
+      toast.success("بیک اپ کامیابی سے بن گیا")
     } catch {
       toast.error("ایکسپورٹ میں خرابی")
     }
@@ -423,7 +434,7 @@ export function SettingsSection() {
                 <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-muted-foreground">ای میل</p>
-                  <p className="text-sm font-medium truncate">{session?.user?.email}</p>
+                  <p className="text-sm font-medium truncate">{authUser?.email}</p>
                 </div>
               </div>
 
@@ -455,7 +466,7 @@ export function SettingsSection() {
                             variant="ghost"
                             onClick={() => {
                               setIsEditingName(false)
-                              setEditName(session?.user?.name || "")
+                              setEditName(authUser?.name || "")
                             }}
                             className="h-8 px-3"
                           >
@@ -463,7 +474,7 @@ export function SettingsSection() {
                           </Button>
                         </div>
                       ) : (
-                        <p className="text-sm font-medium">{session?.user?.name}</p>
+                        <p className="text-sm font-medium">{authUser?.name}</p>
                       )}
                     </div>
                   </div>
@@ -1053,7 +1064,7 @@ export function SettingsSection() {
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           {/* Don't show actions for self */}
-                          {user.id !== session?.user?.id && (
+                          {user.id !== authUser?.id && (
                             <>
                               <Button
                                 size="sm"
@@ -1099,7 +1110,7 @@ export function SettingsSection() {
                               </Button>
                             </>
                           )}
-                          {user.id === session?.user?.id && (
+                          {user.id === authUser?.id && (
                             <Badge variant="outline" className="text-[10px]">
                               آپ
                             </Badge>

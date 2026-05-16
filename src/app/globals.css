@@ -120,13 +120,16 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    font-size: var(--app-font-size);
+  }
   body {
     @apply bg-background text-foreground;
-    font-size: var(--app-font-size);
   }
 }
 
 /* ============= Font Size System ============= */
+/* Applied on <html> via data-font-size attribute — all rem units scale accordingly */
 [data-font-size="small"] { --app-font-size: 14px; }
 [data-font-size="medium"] { --app-font-size: 16px; }
 [data-font-size="large"] { --app-font-size: 18px; }

@@ -1,12 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { UserPlus, Loader2, Clock, FlaskConical } from "lucide-react"
+import { UserPlus, Loader2, Clock, Monitor } from "lucide-react"
 
 interface RegisterFormProps {
   onSwitchToLogin: () => void
@@ -20,6 +20,7 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [pendingApproval, setPendingApproval] = useState(false)
+  const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,11 +55,8 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
       if (data.needsApproval) {
         setPendingApproval(true)
       } else {
-        await signIn("credentials", {
-          email,
-          password,
-          redirect: false,
-        })
+        // Auto-login after registration
+        await login(email, password)
       }
     } catch {
       setError("رجسٹریشن میں خرابی پیش آئی")

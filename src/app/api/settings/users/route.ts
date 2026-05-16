@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { getCurrentSession } from "@/lib/auth"
+import { getAuthUser } from "@/lib/auth-user"
 
 // GET: List all users (admin only) - for user management
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getCurrentSession()
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json(
         { success: false, message: "لاگ ان ضروری ہے" },
         { status: 401 }
       )
     }
 
-    if (session.user.role !== "admin") {
+    if (user.role !== "admin") {
       return NextResponse.json(
         { success: false, message: "صرف ایڈمن رسائی رکھتا ہے" },
         { status: 403 }
@@ -46,15 +46,15 @@ export async function GET() {
 // PUT: Approve/reject user or update user role (admin only)
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getCurrentSession()
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json(
         { success: false, message: "لاگ ان ضروری ہے" },
         { status: 401 }
       )
     }
 
-    if (session.user.role !== "admin") {
+    if (user.role !== "admin") {
       return NextResponse.json(
         { success: false, message: "صرف ایڈمن رسائی رکھتا ہے" },
         { status: 403 }
@@ -72,7 +72,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Prevent admin from modifying themselves
-    if (userId === session.user.id) {
+    if (userId === user.id) {
       return NextResponse.json(
         { success: false, message: "اپنا اکاؤنٹ یہاں تبدیل نہیں کر سکتے" },
         { status: 400 }

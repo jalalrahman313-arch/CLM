@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/auth-user'
 import { db } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
-    const userId = session.user.id
+    const userId = user.id
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
@@ -56,10 +55,10 @@ export async function GET(request: NextRequest) {
       orderBy: { date: 'desc' },
     })
 
-    // Attendance metrics
+    // Attendance metrics (handle backward compat: 'غیر حاضر'/'غایب' → 'غائب')
     const totalRecords = attendanceRecords.length
     const presentCount = attendanceRecords.filter((r) => r.status === 'حاضر').length
-    const absentCount = attendanceRecords.filter((r) => r.status === 'غیر حاضر').length
+    const absentCount = attendanceRecords.filter((r) => r.status === 'غائب' || r.status === 'غایب' || r.status === 'غیر حاضر').length
     const leaveCount = attendanceRecords.filter((r) => r.status === 'رخصت').length
     const attendanceRate = totalRecords > 0
       ? Math.round((presentCount / totalRecords) * 100)
@@ -71,7 +70,7 @@ export async function GET(request: NextRequest) {
       const existing = dailyTrendsMap.get(record.date) || { present: 0, absent: 0, leave: 0, total: 0 }
       existing.total++
       if (record.status === 'حاضر') existing.present++
-      else if (record.status === 'غیر حاضر') existing.absent++
+      else if (record.status === 'غائب' || record.status === 'غایب' || record.status === 'غیر حاضر') existing.absent++
       else if (record.status === 'رخصت') existing.leave++
       dailyTrendsMap.set(record.date, existing)
     }
@@ -93,7 +92,7 @@ export async function GET(request: NextRequest) {
       existing.total++
       existing.students.add(record.studentId)
       if (record.status === 'حاضر') existing.present++
-      else if (record.status === 'غیر حاضر') existing.absent++
+      else if (record.status === 'غائب' || record.status === 'غایب' || record.status === 'غیر حاضر') existing.absent++
       else if (record.status === 'رخصت') existing.leave++
       classSummariesMap.set(record.classId, existing)
     }
@@ -138,9 +137,9 @@ export async function GET(request: NextRequest) {
       }
       existing.total++
       if (record.status === 'حاضر') existing.present++
-      else if (record.status === 'غیر حاضر') existing.absent++
+      else if (record.status === 'غائب' || record.status === 'غایب' || record.status === 'غیر حاضر') existing.absent++
       else if (record.status === 'رخصت') existing.leave++
-      existing.dates.push({ date: record.date, status: record.status })
+      existing.dates.push({ date: record.date, status: (record.status === 'غیر حاضر' || record.status === 'غایب') ? 'غائب' : record.status })
       studentAttendanceMap.set(record.studentId, existing)
     }
 
@@ -178,7 +177,7 @@ export async function GET(request: NextRequest) {
       const existing = monthlyTrendsMap.get(month) || { month, present: 0, absent: 0, leave: 0, total: 0 }
       existing.total++
       if (record.status === 'حاضر') existing.present++
-      else if (record.status === 'غیر حاضر') existing.absent++
+      else if (record.status === 'غائب' || record.status === 'غایب' || record.status === 'غیر حاضر') existing.absent++
       else if (record.status === 'رخصت') existing.leave++
       monthlyTrendsMap.set(month, existing)
     }

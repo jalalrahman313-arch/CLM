@@ -1,22 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/auth-user'
 import { db } from '@/lib/db'
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
     const { id } = await params
 
     const task = await db.task.findFirst({
-      where: { id, userId: session.user.id },
+      where: { id, userId: user.id },
       include: {
         class: {
           select: { name: true },
@@ -43,8 +42,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
@@ -53,7 +52,7 @@ export async function PUT(
     const { title, description, status, classId, courseId } = body
 
     const existing = await db.task.findFirst({
-      where: { id, userId: session.user.id },
+      where: { id, userId: user.id },
     })
 
     if (!existing) {
@@ -88,19 +87,19 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
     const { id } = await params
 
     const existing = await db.task.findFirst({
-      where: { id, userId: session.user.id },
+      where: { id, userId: user.id },
     })
 
     if (!existing) {

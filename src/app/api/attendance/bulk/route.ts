@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getAuthUser } from '@/lib/auth-user'
 import { db } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request)
+    if (!user) {
       return NextResponse.json({ error: 'غیر مصدق' }, { status: 401 })
     }
 
@@ -19,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     // Verify class belongs to user
     const cls = await db.class.findFirst({
-      where: { id: classId, userId: session.user.id },
+      where: { id: classId, userId: user.id },
     })
     if (!cls) {
       return NextResponse.json({ error: 'کلاس نہیں ملی' }, { status: 404 })

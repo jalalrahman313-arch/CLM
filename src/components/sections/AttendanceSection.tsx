@@ -62,7 +62,7 @@ interface ClassStatusItem {
   attendanceStatus: "taken" | "not_taken" | "no_class"
 }
 
-type AttendanceStatus = "حاضر" | "رخصت" | "غیر حاضر" | "skip"
+type AttendanceStatus = "حاضر" | "رخصت" | "غائب" | "skip"
 
 export function AttendanceSection() {
   const queryClient = useQueryClient()
@@ -111,11 +111,13 @@ export function AttendanceSection() {
     return map
   }, [classStatuses])
 
-  // Compute base map from API data
+  // Compute base map from API data (handle backward compat: 'غیر حاضر'/'غایب' → 'غائب')
   const baseMap = useMemo(() => {
     const map: Record<string, AttendanceStatus> = {}
     for (const record of existingAttendance) {
-      map[record.studentId] = record.status as AttendanceStatus
+      // Convert old 'غیر حاضر'/'غایب' to new 'غائب'
+      const normalizedStatus = (record.status === "غیر حاضر" || record.status === "غایب") ? "غائب" : record.status
+      map[record.studentId] = normalizedStatus as AttendanceStatus
     }
     return map
   }, [existingAttendance])
@@ -186,7 +188,7 @@ export function AttendanceSection() {
       studentId: s.id,
       classId: selectedClassId,
       date: selectedDate,
-      status: attendanceMap[s.id] || "غیر حاضر",
+      status: attendanceMap[s.id] || "غائب",
     }))
 
     bulkMutation.mutate(records)
@@ -195,7 +197,7 @@ export function AttendanceSection() {
   // Compute attendance summary
   const presentCount = students.filter((s) => attendanceMap[s.id] === "حاضر").length
   const leaveCount = students.filter((s) => attendanceMap[s.id] === "رخصت").length
-  const absentCount = students.filter((s) => attendanceMap[s.id] === "غیر حاضر").length
+  const absentCount = students.filter((s) => attendanceMap[s.id] === "غائب" || attendanceMap[s.id] === "غایب" || attendanceMap[s.id] === "غیر حاضر").length
 
   // Get status icon and colors for a class
   const getStatusDisplay = (status: "taken" | "not_taken" | "no_class") => {
@@ -391,7 +393,7 @@ export function AttendanceSection() {
                 </div>
                 <div className="stat-3d bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 p-3 text-center" style={{ '--accent-color': '#ef4444' } as React.CSSProperties}>
                   <p className="text-lg font-bold text-red-500 dark:text-red-400">{absentCount}</p>
-                  <p className="text-[10px] text-red-500/70 dark:text-red-400/70 font-medium">غیر حاضر</p>
+                  <p className="text-[10px] text-red-500/70 dark:text-red-400/70 font-medium">غائب</p>
                 </div>
               </div>
             )}
@@ -457,16 +459,16 @@ export function AttendanceSection() {
                         </Button>
                         <Button
                           size="sm"
-                          variant={currentStatus === "غیر حاضر" ? "default" : "outline"}
+                          variant={currentStatus === "غائب" ? "default" : "outline"}
                           className={
-                            currentStatus === "غیر حاضر"
+                            currentStatus === "غائب"
                               ? "h-8 rounded-lg bg-red-500 hover:bg-red-600 text-white shadow-md shadow-red-500/25 border-0"
                               : "h-8 rounded-lg border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
                           }
-                          onClick={() => setStatus(student.id, "غیر حاضر")}
+                          onClick={() => setStatus(student.id, "غائب")}
                         >
                           <XCircle className="h-3.5 w-3.5 ml-1" />
-                          غیر حاضر
+                          غائب
                         </Button>
                       </div>
                     </div>
